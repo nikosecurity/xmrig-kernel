@@ -6,7 +6,9 @@
 // This is an array of permitted MSRs (to prevent syscall and sysenter overwrites, among other vectors).
 unsigned long g_pAllowedMSRs[] =
 {
-	MSR_MEMORY_PREFETCH_INTEL
+	MSR_MEMORY_PREFETCH_INTEL,
+
+	MSR_MEMORY_PREFETCH_AMD_1, MSR_MEMORY_PREFETCH_AMD_2, MSR_MEMORY_PREFETCH_AMD_3, MSR_MEMORY_PREFETCH_AMD_4
 };
 
 NTSTATUS XMRigDispatchCreate(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)

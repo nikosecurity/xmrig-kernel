@@ -1,14 +1,20 @@
 #pragma once
 
-// Magic XMRig MSR (Model-specific register).
-// This is used to disable memory prefetching, as the algorithm used by Monero is RandomX.
-// This algorithm randomly accesses memory (hence the name), so prefetching memory addresses actually slows it down.
+// Magic XMRig MSRs (Model-specific register).
+// These are used to enable or disable memory prefetching, as the algorithm used by Monero is RandomX.
+// This algorithm randomly accesses memory (hence the name), so prefetching memory addresses seems to slow it down.
 //
 // Seems like setting this MSR to zero enables it, and setting it to 15 (or some other value) disables it to a seemingly controlled degree?
 // Not sure.
 #define MSR_MEMORY_PREFETCH_INTEL 0x1A4
 
-// TODO: Add Ryzen prefetching MSRs to support AMD.
+// As for these MSRs, these are for AMD.
+// Not sure why there's four of them (and what's the difference between them), and testing them will be painful as my main system does not have an AMD CPU.
+// But, these *do* exist in xmrig, and someone has to add them...
+#define MSR_MEMORY_PREFETCH_AMD_1 0xC0011020
+#define MSR_MEMORY_PREFETCH_AMD_2 0xC0011021
+#define MSR_MEMORY_PREFETCH_AMD_3 0xC0011022
+#define MSR_MEMORY_PREFETCH_AMD_4 0xC001102B
 
 #define IOCTL_READ_MSR  CTL_CODE(FILE_DEVICE_UNKNOWN, 0, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define IOCTL_WRITE_MSR CTL_CODE(FILE_DEVICE_UNKNOWN, 1, METHOD_BUFFERED, FILE_ANY_ACCESS)
