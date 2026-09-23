@@ -1,4 +1,5 @@
 #include <ntddk.h>
+#include <Wdmsec.h>
 #include <intrin.h>
 
 #include "Defs.h"
@@ -41,7 +42,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	}
 	}
 
-	Status = IoCreateDevice(DriverObject, MsrDataSize, &g_DeviceName, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, 0, &g_DeviceObject);
+	Status = IoCreateDeviceSecure(DriverObject, MsrDataSize, &g_DeviceName, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, 0, &SDDL_DEVOBJ_SYS_ALL_ADM_ALL, 0, &g_DeviceObject);
 	if (!NT_SUCCESS(Status))
 	{
 		return Status;
