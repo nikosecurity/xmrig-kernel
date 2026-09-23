@@ -15,7 +15,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	UNREFERENCED_PARAMETER(RegistryPath);
 
 	unsigned long long* MsrData = 0;
-	unsigned long long MsrDataSize = 0;
+	unsigned long MsrDataSize = 0;
 
 	NTSTATUS Status = STATUS_SUCCESS;
 
@@ -28,10 +28,12 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	case CpuIntel:
 	{
 		MsrDataSize = (sizeof(g_Whitelist_Intel) / sizeof(ULONG)) * sizeof(unsigned long long);
+		break;
 	}
 	case CpuAmd:
 	{
 		MsrDataSize = (sizeof(g_Whitelist_Amd) / sizeof(ULONG)) * sizeof(unsigned long long);
+		break;
 	}
 	default:
 	{

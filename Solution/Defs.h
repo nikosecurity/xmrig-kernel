@@ -1,7 +1,7 @@
 #pragma once
 
-#define DEVICE_NAME L"\\Device\\XMRigKM"
-#define DOS_DEVICE_NAME L"\\DosDevices\\XMRigKM"
+#define DEVICE_NAME L"\\Device\\PrefetchMod_KM"
+#define DOS_DEVICE_NAME L"\\DosDevices\\PrefetchMod_KM"
 
 // Magic XMRig MSRs (Model-specific register).
 // These are used to enable or disable memory prefetching, as the algorithm used by Monero is RandomX.
@@ -21,6 +21,7 @@
 
 #define IOCTL_READ_MSR  CTL_CODE(FILE_DEVICE_UNKNOWN, 0, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define IOCTL_WRITE_MSR CTL_CODE(FILE_DEVICE_UNKNOWN, 1, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_RESET_MSR CTL_CODE(FILE_DEVICE_UNKNOWN, 2, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 typedef struct _READ_MSR_DATA
 {

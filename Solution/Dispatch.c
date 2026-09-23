@@ -17,15 +17,11 @@ NTSTATUS XMRigDispatchCreateClose(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
-	UNREFERENCED_PARAMETER(DeviceObject);
-
 	PIO_STACK_LOCATION IO = 0;
 
 	PVOID SystemBuffer = 0;
+
 	ULONG_PTR BytesReturned = 0;
-
-	ULONG Register = 0;
-
 	NTSTATUS Status = STATUS_INVALID_PARAMETER;
 
 	// Get the stack location of the IRP for later usage.
@@ -57,7 +53,7 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		}
 
 		// rdmsr takes in an argument from ecx (model-specific register) and returns a value via rax.
-		*(unsigned long long*)SystemBuffer = __readmsr(Register);
+		*(unsigned long long*)SystemBuffer = __readmsr(ReadMsrData.Register);
 		BytesReturned = sizeof(unsigned long long);
 
 		// Break out of the switch and complete execution.
@@ -83,9 +79,46 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 		// wrmsr takes in arguments from ecx (register) and rax (value).
 		// There are no return values.
-		__writemsr(Register, WriteMsrData.Value);
+		__writemsr(WriteMsrData.Register, WriteMsrData.Value);
 
 		// Break out of the switch and complete execution.
+		break;
+	}
+	case IOCTL_RESET_MSR:
+	{
+		unsigned long long* MsrData = (unsigned long long*)DeviceObject->DeviceExtension;
+
+		// No validation needs to be performed on the input buffer as nothing is read from or written to.
+
+		switch (g_Vendor)
+		{
+		case CpuIntel:
+		{
+			for (ULONG i = 0; i < sizeof(g_Whitelist_Intel) / sizeof(ULONG); i++)
+			{
+				__writemsr(g_Whitelist_Intel[i], MsrData[i]);
+			}
+
+			Status = STATUS_SUCCESS;
+			break;
+		}
+		case CpuAmd:
+		{
+			for (ULONG i = 0; i < sizeof(g_Whitelist_Amd) / sizeof(ULONG); i++)
+			{
+				__writemsr(g_Whitelist_Amd[i], MsrData[i]);
+			}
+
+			Status = STATUS_SUCCESS;
+			break;
+		}
+		default:
+		{
+			Status = STATUS_UNKNOWN_REVISION;
+			break;
+		}
+		}
+
 		break;
 	}
 	}
