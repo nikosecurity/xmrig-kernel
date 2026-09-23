@@ -1,12 +1,15 @@
 #pragma once
 
+#define DEVICE_NAME L"\\Device\\XMRigKM"
+#define DOS_DEVICE_NAME L"\\DosDevices\\XMRigKM"
+
 // Magic XMRig MSRs (Model-specific register).
 // These are used to enable or disable memory prefetching, as the algorithm used by Monero is RandomX.
 // This algorithm randomly accesses memory (hence the name), so prefetching memory addresses seems to slow it down.
 //
 // Seems like setting this MSR to zero enables it, and setting it to 15 (or some other value) disables it to a seemingly controlled degree?
 // Not sure.
-#define MSR_MEMORY_PREFETCH_INTEL 0x1A4
+#define MSR_MEMORY_PREFETCH_INTEL_1 0x1A4
 
 // As for these MSRs, these are for AMD.
 // Not sure why there's four of them (and what's the difference between them), and testing them will be painful as my main system does not have an AMD CPU.
@@ -27,16 +30,24 @@ typedef struct _READ_MSR_DATA
 typedef struct _WRITE_MSR_DATA
 {
 	unsigned long Register;
-	// The compiler wants to shove this up its ass soooooo badly, so I'll do that FOR it.
-	unsigned long Padding;
+	unsigned long Padding;			// MSVC really wanted to add padding bytes in this structure definition as it was not aligned to an 8-byte boundary, so I added them myself here.
 	unsigned long long Value;
 } WRITE_MSR_DATA, * PWRITE_MSR_DATA;
 
-typedef struct _ALLOCATE_GB_PAGE
-{
-	SIZE_T Size;
-} ALLOCATE_GB_PAGE, * PALLOCATE_GB_PAGE;
+typedef enum _CPU_VENDOR {
+	CpuUnknown,
+	CpuIntel,
+	CpuAmd
+} CPU_VENDOR;
 
-NTSTATUS XMRigDispatchCreate(PDEVICE_OBJECT pDeviceObject, PIRP pIrp);
-NTSTATUS XMRigDispatchClose(PDEVICE_OBJECT pDeviceObject, PIRP pIrp);
-NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp);
+NTSTATUS XMRigUnload(PDRIVER_OBJECT DriverObject);
+
+NTSTATUS XMRigDispatchCreateClose(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+
+CPU_VENDOR XMRigGetVendor(void);
+NTSTATUS XMRigIsValidRegister(ULONG Register);
+
+extern CPU_VENDOR g_Vendor;
+extern ULONG g_Whitelist_Intel[1];
+extern ULONG g_Whitelist_Amd[4];
