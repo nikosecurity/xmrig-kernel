@@ -14,7 +14,7 @@ NTSTATUS XMRigSaveStates(void)
 	NTSTATUS Status = STATUS_SUCCESS;
 	PMSR_STATE CurrentState = g_MsrState;
 
-	for (unsigned long i = 0; i < KeQueryActiveProcessorCount(0); i++)
+	for (unsigned long i = 0; i < KeQueryMaximumProcessorCount(); i++)
 	{
 		if (!CurrentState)
 		{
@@ -61,7 +61,7 @@ NTSTATUS XMRigRestoreStates(void)
 	NTSTATUS Status = STATUS_SUCCESS;
 	PMSR_STATE CurrentState = g_MsrState;
 
-	for (unsigned long i = 0; i < KeQueryActiveProcessorCount(0); i++)
+	for (unsigned long i = 0; i < KeQueryMaximumProcessorCount(); i++)
 	{
 		if (!CurrentState)
 		{

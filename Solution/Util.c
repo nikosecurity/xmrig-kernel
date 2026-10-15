@@ -138,7 +138,7 @@ NTSTATUS XMRigInitializeStates(void)
 
 	PreviousState = g_MsrState;
 
-	for (unsigned long i = 1; i < KeQueryActiveProcessorCount(0); i++)
+	for (unsigned long i = 1; i < KeQueryMaximumProcessorCount(); i++)
 	{
 		CurrentState = ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(MSR_STATE), POOL_TAG);
 		if (!CurrentState)
