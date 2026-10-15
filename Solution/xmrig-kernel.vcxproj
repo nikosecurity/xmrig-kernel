@@ -102,6 +102,7 @@
   <ItemGroup>
     <ClCompile Include="Driver.c" />
     <ClCompile Include="Dispatch.c" />
+    <ClCompile Include="Ipi.c" />
     <ClCompile Include="Util.c" />
   </ItemGroup>
   <ItemGroup>

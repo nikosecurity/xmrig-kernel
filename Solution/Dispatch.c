@@ -17,6 +17,8 @@ NTSTATUS XMRigDispatchCreateClose(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
+	UNREFERENCED_PARAMETER(DeviceObject);
+
 	PIO_STACK_LOCATION IO = 0;
 
 	PVOID SystemBuffer = 0;
@@ -53,8 +55,23 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		}
 
 		// rdmsr takes in an argument from ecx (model-specific register) and returns a value via rax.
-		*(unsigned long long*)SystemBuffer = __readmsr(ReadMsrData.Register);
-		BytesReturned = sizeof(unsigned long long);
+		//
+		// It is wrapped in a try-catch to prevent any issues with older hardware (which does not support the target MSR).
+		__try
+		{
+			*(unsigned long long*)SystemBuffer = __readmsr(ReadMsrData.Register);
+			BytesReturned = sizeof(unsigned long long);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			// If this instruction causes a fault, then it is absolutely because the MSR is unsupported on the CPU.
+			// So, we bail out safely and we just set the return status to STATUS_NOT_SUPPORTED (0xC00000BB).
+			Status = STATUS_NOT_SUPPORTED;
+		}
+
+		// BytesReturned is only set if the rdmsr instruction executes without any errors.
+		// Because BytesReturned is initialized to 0 by default and is only set when data is returned, there are no concerns with leaking arbitrary kernel memory as it's simply not possible.
+		// Also because of that, we do not need to zero out the system buffer nor the BytesReturned variable either. We're all good!
 
 		// Break out of the switch and complete execution.
 		break;
@@ -79,46 +96,30 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 		// wrmsr takes in arguments from ecx (register) and rax (value).
 		// There are no return values.
-		__writemsr(WriteMsrData.Register, WriteMsrData.Value);
+		//
+		// It is wrapped in a try-catch to prevent any issues with older hardware (which does not support the target MSR).
+		__try
+		{
+			__writemsr(WriteMsrData.Register, WriteMsrData.Value);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			// If this instruction causes a fault, then it is absolutely because the MSR is unsupported on the CPU.
+			// So, we bail out safely and we just set the return status to STATUS_NOT_SUPPORTED (0xC00000BB).
+			Status = STATUS_NOT_SUPPORTED;
+		}
 
 		// Break out of the switch and complete execution.
 		break;
 	}
-	case IOCTL_RESET_MSR:
+	case IOCTL_SAVE_ALL_MSRS:
 	{
-		unsigned long long* MsrData = (unsigned long long*)DeviceObject->DeviceExtension;
-
-		// No validation needs to be performed on the input buffer as nothing is read from or written to.
-
-		switch (g_Vendor)
-		{
-		case CpuIntel:
-		{
-			for (ULONG i = 0; i < sizeof(g_Whitelist_Intel) / sizeof(ULONG); i++)
-			{
-				__writemsr(g_Whitelist_Intel[i], MsrData[i]);
-			}
-
-			Status = STATUS_SUCCESS;
-			break;
-		}
-		case CpuAmd:
-		{
-			for (ULONG i = 0; i < sizeof(g_Whitelist_Amd) / sizeof(ULONG); i++)
-			{
-				__writemsr(g_Whitelist_Amd[i], MsrData[i]);
-			}
-
-			Status = STATUS_SUCCESS;
-			break;
-		}
-		default:
-		{
-			Status = STATUS_UNKNOWN_REVISION;
-			break;
-		}
-		}
-
+		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigSaveStates, 0);
+		break;
+	}
+	case IOCTL_RESTORE_ALL_MSRS:
+	{
+		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigRestoreStates, 0);
 		break;
 	}
 	}
