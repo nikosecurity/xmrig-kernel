@@ -16,7 +16,7 @@ ULONG g_Whitelist_Amd[4] =
 };
 
 CPU_VENDOR g_Vendor = 0;
-PMSR_STATE g_MsrState = 0;
+PMSR_STATE* g_MsrStates = 0;
 
 CPU_VENDOR XMRigGetVendor(void)
 {
@@ -83,9 +83,6 @@ NTSTATUS XMRigIsValidRegister(ULONG Register)
 
 NTSTATUS XMRigInitializeStates(void)
 {
-	PMSR_STATE PreviousState = 0;
-	PMSR_STATE CurrentState = 0;
-
 	unsigned long RegisterCount = 0;
 
 	g_Vendor = XMRigGetVendor();
@@ -107,57 +104,42 @@ NTSTATUS XMRigInitializeStates(void)
 	}
 	}
 
-	g_MsrState = ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(MSR_STATE), POOL_TAG);
-	if (!g_MsrState)
+	g_MsrStates = ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(PMSR_STATE) * KeQueryMaximumProcessorCount(), POOL_TAG);
+	if (!g_MsrStates)
 	{
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
-	RtlSecureZeroMemory(g_MsrState, sizeof(MSR_STATE));
+	RtlSecureZeroMemory(g_MsrStates, sizeof(PMSR_STATE) * KeQueryMaximumProcessorCount());
 
-	g_MsrState->ProcessorNumber = 0;
-	g_MsrState->Values = ExAllocatePool2(POOL_FLAG_NON_PAGED, RegisterCount * sizeof(unsigned long long), POOL_TAG);
-	if (!g_MsrState->Values)
+	for (unsigned long i = 0; i < KeQueryMaximumProcessorCount(); i++)
 	{
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-	RtlSecureZeroMemory(g_MsrState->Values, RegisterCount * sizeof(unsigned long long));
-
-	switch (g_Vendor)
-	{
-	case CpuIntel:
-	{
-		g_MsrState->Registers = g_Whitelist_Intel;
-		break;
-	}
-	case CpuAmd:
-	{
-		g_MsrState->Registers = g_Whitelist_Amd;
-		break;
-	}
-	}
-
-	PreviousState = g_MsrState;
-
-	for (unsigned long i = 1; i < KeQueryMaximumProcessorCount(); i++)
-	{
-		CurrentState = ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(MSR_STATE), POOL_TAG);
-		if (!CurrentState)
+		g_MsrStates[i] = ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(MSR_STATE), POOL_TAG);
+		if (!g_MsrStates[i])
 		{
 			return STATUS_INSUFFICIENT_RESOURCES;
 		}
-		RtlSecureZeroMemory(CurrentState, sizeof(MSR_STATE));
+		RtlSecureZeroMemory(g_MsrStates[i], sizeof(MSR_STATE));
 
-		CurrentState->ProcessorNumber = i;
-		CurrentState->Registers = g_MsrState->Registers;
-		CurrentState->Values = ExAllocatePool2(POOL_FLAG_NON_PAGED, RegisterCount * sizeof(unsigned long long), POOL_TAG);
-		if (!CurrentState->Values)
+		g_MsrStates[i]->Values = ExAllocatePool2(POOL_FLAG_NON_PAGED, RegisterCount * sizeof(unsigned long long), POOL_TAG);
+		if (!g_MsrStates[i]->Values)
 		{
 			return STATUS_INSUFFICIENT_RESOURCES;
 		}
-		RtlSecureZeroMemory(CurrentState->Values, RegisterCount * sizeof(unsigned long long));
+		RtlSecureZeroMemory(g_MsrStates[i]->Values, RegisterCount * sizeof(unsigned long long));
 
-		PreviousState->Flink = CurrentState;
-		PreviousState = CurrentState;
+		switch (g_Vendor)
+		{
+		case CpuIntel:
+		{
+			g_MsrStates[i]->Registers = g_Whitelist_Intel;
+			break;
+		}
+		case CpuAmd:
+		{
+			g_MsrStates[i]->Registers = g_Whitelist_Amd;
+			break;
+		}
+		}
 	}
 
 	return STATUS_SUCCESS;
@@ -165,33 +147,25 @@ NTSTATUS XMRigInitializeStates(void)
 
 void XMRigDestroyStates(void)
 {
-	PMSR_STATE CurrentState = 0;
-	PMSR_STATE PreviousState = 0;
-
-	char IsDone = 0;
-
-	while (!IsDone)
+	if (!g_MsrStates)
 	{
-		CurrentState = g_MsrState;
-
-		while (CurrentState->Flink)
-		{
-			PreviousState = CurrentState;
-			CurrentState = CurrentState->Flink;
-		}
-
-		if (CurrentState != g_MsrState)
-		{
-			PreviousState->Flink = 0;
-		}
-		else
-		{
-			IsDone = 1;
-		}
-
-		ExFreePoolWithTag(CurrentState->Values, POOL_TAG);
-		ExFreePoolWithTag(CurrentState, POOL_TAG);
+		return;
 	}
 
-	g_MsrState = 0;
+	for (unsigned long i = 0; i < KeQueryMaximumProcessorCount(); i++)
+	{
+		if (!g_MsrStates[i])
+		{
+			continue;
+		}
+
+		if (g_MsrStates[i]->Values)
+		{
+			ExFreePoolWithTag(g_MsrStates[i]->Values, POOL_TAG);
+		}
+
+		ExFreePoolWithTag(g_MsrStates[i], POOL_TAG);
+	}
+
+	ExFreePoolWithTag(g_MsrStates, POOL_TAG);
 }

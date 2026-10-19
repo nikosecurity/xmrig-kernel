@@ -32,8 +32,6 @@
 #pragma pack(push, 1)
 typedef struct _MSR_STATE
 {
-	void* Flink;
-	unsigned long ProcessorNumber;
 	unsigned long* Registers;
 	unsigned long long* Values;
 } MSR_STATE, * PMSR_STATE;
@@ -71,7 +69,7 @@ void XMRigDestroyStates(void);
 NTSTATUS XMRigSaveStates(void);
 NTSTATUS XMRigRestoreStates(void);
 
-extern PMSR_STATE g_MsrState;
+extern PMSR_STATE* g_MsrStates;
 extern CPU_VENDOR g_Vendor;
 extern ULONG g_Whitelist_Intel[1];
 extern ULONG g_Whitelist_Amd[4];
