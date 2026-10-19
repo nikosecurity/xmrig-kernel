@@ -59,6 +59,15 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// It is wrapped in a try-catch to prevent any issues with older hardware (which does not support the target MSR).
 		__try
 		{
+			// Write the register's value back into the system buffer and send it back to user-mode.
+			//
+			// You know, I've had a few AIs try to analyze my code for me in-case I miss anything.
+			// Well, they always tend to flag this line in particular, despite no bug ever being present. Here's why.
+			//
+			// Alignment issues are always mentioned, despite the fact that the system buffer (while using METHOD_BUFFERED) is *always* aligned on a 0x10 byte boundary. There are no alignment issues here.
+			// Even if it did not align on this boundary, this simply writes an 8 byte value to the start of the heap allocation backing this buffer and fills it completely as the length is forced to be 8 bytes.
+			// To my knowledge anyway, the alignment does not matter here, it is written perfectly into the buffer every single time and filling it entirely with the 8 bytes read.
+			// By all means however, if you are reading this line, you're free to prove me wrong.
 			*(unsigned long long*)SystemBuffer = __readmsr(ReadMsrData.Register);
 			BytesReturned = sizeof(unsigned long long);
 		}
@@ -114,11 +123,13 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	}
 	case IOCTL_SAVE_ALL_MSRS:
 	{
+		// Issue an inter-processor interrupt (IPI) to save the states of all of the modified registers on each core to be restored at a later time.
 		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigSaveStates, 0);
 		break;
 	}
 	case IOCTL_RESTORE_ALL_MSRS:
 	{
+		// Issue an inter-processor interrupt (IPI) to restore the states of all of the modified registers
 		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigRestoreStates, 0);
 		break;
 	}

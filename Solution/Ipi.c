@@ -18,6 +18,8 @@
 // I may come back to this one day in the future, however.
 //
 
+CHAR g_IsSet = 0;
+
 NTSTATUS XMRigSaveStates(void)
 {
 	switch (g_Vendor)
@@ -44,11 +46,17 @@ NTSTATUS XMRigSaveStates(void)
 	}
 	}
 
+	g_IsSet = 1;
 	return STATUS_SUCCESS;
 }
 
 NTSTATUS XMRigRestoreStates(void)
 {
+	if (!g_IsSet)
+	{
+		return STATUS_NOT_FOUND;
+	}
+
 	switch (g_Vendor)
 	{
 	case CpuIntel:
