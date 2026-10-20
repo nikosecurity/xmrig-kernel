@@ -20,15 +20,17 @@
 
 CHAR g_IsSet = 0;
 
-NTSTATUS XMRigSaveStates(void)
+NTSTATUS XMRigIpiSaveStates(void)
 {
+	PMSR_STATE* States = g_DeviceObject->DeviceExtension;
+
 	switch (g_Vendor)
 	{
 	case CpuIntel:
 	{
 		for (ULONG i = 0; i < sizeof(g_Whitelist_Intel) / sizeof(ULONG); i++)
 		{
-			g_MsrStates[KeGetCurrentProcessorIndex()]->Values[i] = __readmsr(g_MsrStates[KeGetCurrentProcessorIndex()]->Registers[i]);
+			States[KeGetCurrentProcessorIndex()]->Values[i] = __readmsr(States[KeGetCurrentProcessorIndex()]->Registers[i]);
 		}
 		break;
 	}
@@ -36,7 +38,7 @@ NTSTATUS XMRigSaveStates(void)
 	{
 		for (ULONG i = 0; i < sizeof(g_Whitelist_Amd) / sizeof(ULONG); i++)
 		{
-			g_MsrStates[KeGetCurrentProcessorIndex()]->Values[i] = __readmsr(g_MsrStates[KeGetCurrentProcessorIndex()]->Registers[i]);
+			States[KeGetCurrentProcessorIndex()]->Values[i] = __readmsr(States[KeGetCurrentProcessorIndex()]->Registers[i]);
 		}
 		break;
 	}
@@ -50,8 +52,10 @@ NTSTATUS XMRigSaveStates(void)
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS XMRigRestoreStates(void)
+NTSTATUS XMRigIpiRestoreStates(void)
 {
+	PMSR_STATE* States = g_DeviceObject->DeviceExtension;
+
 	if (!g_IsSet)
 	{
 		return STATUS_NOT_FOUND;
@@ -63,7 +67,7 @@ NTSTATUS XMRigRestoreStates(void)
 	{
 		for (ULONG i = 0; i < sizeof(g_Whitelist_Intel) / sizeof(ULONG); i++)
 		{
-			__writemsr(g_MsrStates[KeGetCurrentProcessorIndex()]->Registers[i], g_MsrStates[KeGetCurrentProcessorIndex()]->Values[i]);
+			__writemsr(States[KeGetCurrentProcessorIndex()]->Registers[i], States[KeGetCurrentProcessorIndex()]->Values[i]);
 		}
 		break;
 	}
@@ -71,7 +75,7 @@ NTSTATUS XMRigRestoreStates(void)
 	{
 		for (ULONG i = 0; i < sizeof(g_Whitelist_Amd) / sizeof(ULONG); i++)
 		{
-			__writemsr(g_MsrStates[KeGetCurrentProcessorIndex()]->Registers[i], g_MsrStates[KeGetCurrentProcessorIndex()]->Values[i]);
+			__writemsr(States[KeGetCurrentProcessorIndex()]->Registers[i], States[KeGetCurrentProcessorIndex()]->Values[i]);
 		}
 		break;
 	}

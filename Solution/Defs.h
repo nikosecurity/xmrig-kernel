@@ -29,26 +29,22 @@
 #define IOCTL_SAVE_ALL_MSRS		CTL_CODE(FILE_DEVICE_UNKNOWN, 2, METHOD_BUFFERED, FILE_READ_ACCESS)
 #define IOCTL_RESTORE_ALL_MSRS  CTL_CODE(FILE_DEVICE_UNKNOWN, 3, METHOD_BUFFERED, FILE_WRITE_ACCESS)
 
-#pragma pack(push, 1)
 typedef struct _MSR_STATE
 {
 	unsigned long* Registers;
 	unsigned long long* Values;
 } MSR_STATE, * PMSR_STATE;
-#pragma pack(pop)
 
 typedef struct _READ_MSR_DATA
 {
 	unsigned long Register;
 } READ_MSR_DATA, * PREAD_MSR_DATA;
 
-#pragma pack(push, 1)
 typedef struct _WRITE_MSR_DATA
 {
 	unsigned long Register;
 	unsigned long long Value;
 } WRITE_MSR_DATA, * PWRITE_MSR_DATA;
-#pragma pack(pop)
 
 typedef enum _CPU_VENDOR {
 	CpuUnknown,
@@ -56,7 +52,7 @@ typedef enum _CPU_VENDOR {
 	CpuAmd
 } CPU_VENDOR;
 
-NTSTATUS XMRigUnload(PDRIVER_OBJECT DriverObject);
+void XMRigUnload(PDRIVER_OBJECT DriverObject);
 
 NTSTATUS XMRigDispatchCreateClose(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp);
@@ -66,10 +62,11 @@ NTSTATUS XMRigIsValidRegister(ULONG Register);
 NTSTATUS XMRigInitializeStates(void);
 void XMRigDestroyStates(void);
 
-NTSTATUS XMRigSaveStates(void);
-NTSTATUS XMRigRestoreStates(void);
+NTSTATUS XMRigIpiSaveStates(void);
+NTSTATUS XMRigIpiRestoreStates(void);
 
-extern PMSR_STATE* g_MsrStates;
+extern PDEVICE_OBJECT g_DeviceObject;
+
 extern CPU_VENDOR g_Vendor;
 extern ULONG g_Whitelist_Intel[1];
 extern ULONG g_Whitelist_Amd[4];

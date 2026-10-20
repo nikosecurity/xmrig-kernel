@@ -1,6 +1,6 @@
 #include <ntddk.h>
-#include <Wdmsec.h>
 #include <intrin.h>
+#include <Wdmsec.h>
 
 #include "Defs.h"
 
@@ -18,13 +18,13 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	RtlInitUnicodeString(&g_DeviceName, DEVICE_NAME);
 	RtlInitUnicodeString(&g_DosDeviceName, DOS_DEVICE_NAME);
 
-	Status = XMRigInitializeStates();
+	Status = IoCreateDeviceSecure(DriverObject, sizeof(PMSR_STATE) * KeQueryMaximumProcessorCount(), &g_DeviceName, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, 0, &SDDL_DEVOBJ_SYS_ALL_ADM_ALL, 0, &g_DeviceObject);
 	if (!NT_SUCCESS(Status))
 	{
 		return Status;
 	}
 
-	Status = IoCreateDeviceSecure(DriverObject, 0, &g_DeviceName, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, 0, &SDDL_DEVOBJ_SYS_ALL_ADM_ALL, 0, &g_DeviceObject);
+	Status = XMRigInitializeStates();
 	if (!NT_SUCCESS(Status))
 	{
 		return Status;
@@ -46,17 +46,15 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	return Status;
 }
 
-NTSTATUS XMRigUnload(PDRIVER_OBJECT DriverObject)
+void XMRigUnload(PDRIVER_OBJECT DriverObject)
 {
 	UNREFERENCED_PARAMETER(DriverObject);
 
 	// We don't need to check the return values on any of these functions because this is the unload routine.
 	// If the kernel fails to delete an object, then there's not really much else we can do about that.
-	// Though, we should still return STATUS_SUCCESS. This way, the driver can still unload cleanly.
 
 	XMRigDestroyStates();
 
 	IoDeleteSymbolicLink(&g_DosDeviceName);
 	IoDeleteDevice(g_DeviceObject);
-	return STATUS_SUCCESS;
 }

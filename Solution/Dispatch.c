@@ -124,13 +124,13 @@ NTSTATUS XMRigDispatchControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	case IOCTL_SAVE_ALL_MSRS:
 	{
 		// Issue an inter-processor interrupt (IPI) to save the states of all of the modified registers on each core to be restored at a later time.
-		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigSaveStates, 0);
+		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigIpiSaveStates, 0);
 		break;
 	}
 	case IOCTL_RESTORE_ALL_MSRS:
 	{
 		// Issue an inter-processor interrupt (IPI) to restore the states of all of the modified registers
-		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigRestoreStates, 0);
+		Status = (NTSTATUS)KeIpiGenericCall((PKIPI_BROADCAST_WORKER)XMRigIpiRestoreStates, 0);
 		break;
 	}
 	}
